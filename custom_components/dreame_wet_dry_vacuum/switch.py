@@ -36,6 +36,7 @@ class DreameWetDrySwitch(DreameWetDryEntity, SwitchEntity):
         super().__init__(coordinator, key, meta)
         if meta.get("optimistic"):
             self._attr_assumed_state = True
+        self._inverted = bool(meta.get("inverted"))
 
     @property
     def is_on(self) -> bool | None:
@@ -43,12 +44,13 @@ class DreameWetDrySwitch(DreameWetDryEntity, SwitchEntity):
         if raw is None:
             return None
         try:
-            return int(raw) != 0
+            on = int(raw) != 0
         except (ValueError, TypeError):
-            return bool(raw)
+            on = bool(raw)
+        return not on if self._inverted else on
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self._set(1)
+        await self._set(0 if self._inverted else 1)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self._set(0)
+        await self._set(1 if self._inverted else 0)

@@ -86,6 +86,7 @@ class DreameWetDrySensor(CoordinatorEntity[DreameWetDryCoordinator], SensorEntit
         self._is_timestamp = meta.get("timestamp", False)
         self._is_bitmask = meta.get("bitmask", False)
         self._decode = meta.get("decode")
+        self._value_map: dict[int, str] | None = meta.get("value_map")
 
         self._attr_unique_id = f"{coordinator.device_id}_{self._data_key}"
         self._attr_translation_key = meta["key"]
@@ -126,6 +127,11 @@ class DreameWetDrySensor(CoordinatorEntity[DreameWetDryCoordinator], SensorEntit
                 return DEVICE_STATUS.get(int(raw), str(raw))
             except (ValueError, TypeError):
                 return str(raw)
+        if self._value_map:
+            try:
+                return self._value_map.get(int(raw), str(raw))
+            except (ValueError, TypeError):
+                return str(raw)
         # Lists we don't reduce: present as string to stay valid
         if isinstance(raw, list):
             return ", ".join(str(x) for x in raw)
@@ -135,7 +141,7 @@ class DreameWetDrySensor(CoordinatorEntity[DreameWetDryCoordinator], SensorEntit
     def extra_state_attributes(self) -> dict[str, Any]:
         attrs = {"siid": self._key[0], "piid": self._key[1]}
         raw = self.coordinator.data.get(self._data_key)
-        if self._is_enum or self._is_timestamp or self._list_scalar:
+        if self._is_enum or self._is_timestamp or self._list_scalar or self._value_map:
             attrs["raw_value"] = raw
         if self._is_bitmask and raw is not None:
             try:

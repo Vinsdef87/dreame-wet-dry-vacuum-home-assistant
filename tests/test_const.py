@@ -81,3 +81,23 @@ class TestTableConsistency:
     def test_meta_keys_are_unique_per_platform(self):
         keys = [m["key"] for m in KNOWN_MQTT_PROPS.values()]
         assert len(keys) == len(set(keys))
+
+
+class TestH14ProMappingConfirmed:
+    """Semantics confirmed on a real H14 Pro against the Dreame app (2026-10-11)."""
+
+    def test_auto_rinse_and_auto_drying_are_inverted(self):
+        from custom_components.dreame_wet_dry_vacuum.const import KNOWN_SWITCH_PROPS
+
+        assert KNOWN_SWITCH_PROPS[(1, 7)].get("inverted") is True
+        assert KNOWN_SWITCH_PROPS[(1, 9)].get("inverted") is True
+
+    def test_traction_zero_is_balanced(self):
+        from custom_components.dreame_wet_dry_vacuum.const import KNOWN_SELECT_PROPS
+
+        assert KNOWN_SELECT_PROPS[(23, 1)]["options"][0] == "balanced"
+
+    def test_drying_mode_two_is_fast(self):
+        from custom_components.dreame_wet_dry_vacuum.const import KNOWN_MQTT_PROPS
+
+        assert KNOWN_MQTT_PROPS[(1, 10)]["value_map"][2] == "Fast"

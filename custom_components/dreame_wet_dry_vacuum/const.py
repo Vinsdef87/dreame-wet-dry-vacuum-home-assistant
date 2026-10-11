@@ -111,9 +111,14 @@ KNOWN_MQTT_PROPS: dict[tuple[int, int], dict] = {
     # --- Service principal (SIID 1) ---
     (2, 1): {"key": "status", "name": "Status", "enum": True, "icon": "mdi:robot-vacuum-variant"},
     (3, 1): {"key": "battery", "name": "Battery", "unit": "%", "device_class": "battery"},
-    (1, 28): {"key": "work_mode", "name": "Work mode", "icon": "mdi:state-machine", "diagnostic": True},
+    (1, 28): {"key": "work_mode", "name": "Work mode", "enum": True, "icon": "mdi:state-machine", "diagnostic": True},
     (1, 29): {"key": "level_washing", "name": "Washing level", "icon": "mdi:water-percent", "state_class": "measurement"},
     (1, 30): {"key": "level_drying", "name": "Drying level", "icon": "mdi:hair-dryer", "state_class": "measurement"},
+    # Drying mode: 2=Fast confirmed on H14 Pro (2026-10-11, app vs cloud value).
+    # Other codes not yet observed -> shown as raw number.
+    (1, 10): {"key": "drying_mode", "name": "Drying mode", "value_map": {2: "Fast"}, "icon": "mdi:hair-dryer"},
+    # Cleaning mode (plugin, confirmed on H15): 4=Personalized matches 16.6 custom=1 on H14 Pro.
+    (16, 7): {"key": "cleaning_mode", "name": "Cleaning mode", "value_map": {1: "Quiet", 3: "Turbo", 4: "Personalized"}, "icon": "mdi:broom"},
     (1, 53): {"key": "total_time", "name": "Total runtime", "unit": "s", "device_class": "duration", "icon": "mdi:timer-cog", "diagnostic": True},
     (1, 54): {"key": "total_clean_count", "name": "Total clean count", "icon": "mdi:counter", "state_class": "total_increasing"},
     (1, 55): {"key": "start_time", "name": "Start time", "device_class": "timestamp", "timestamp": True, "icon": "mdi:clock-start", "diagnostic": True},
@@ -245,27 +250,29 @@ KNOWN_BINARY_PROPS: dict[tuple[int, int], dict] = {
 # ---------------------------------------------------------------------------
 
 # Interrupteurs booléens (0/1).
+#   inverted=True   -> 0 = activé, 1 = désactivé
 #   optimistic=True -> l'état courant n'est PAS lisible (ni MQTT ni web) ; l'entité
 #   reflète la dernière commande envoyée (assumed_state).
 KNOWN_SWITCH_PROPS: dict[tuple[int, int], dict] = {
-    (1, 3): {"key": "light_control", "name": "Light", "icon": "mdi:lightbulb", "optimistic": True},
-    (1, 4): {"key": "auto_mix_detergent", "name": "Auto detergent mixing", "icon": "mdi:bottle-tonic-plus", "optimistic": True},
-    (1, 7): {"key": "auto_backwash", "name": "Auto rinse", "icon": "mdi:water-sync"},
-    (1, 9): {"key": "auto_dry_switch", "name": "Auto drying", "icon": "mdi:hair-dryer", "optimistic": True},
-    (1, 11): {"key": "time_dry_after_clean", "name": "Timed dry after cleaning", "icon": "mdi:timer-cog", "optimistic": True},
+    (1, 3): {"key": "light_control", "name": "Light", "icon": "mdi:lightbulb"},
+    (1, 4): {"key": "auto_mix_detergent", "name": "Auto detergent mixing", "icon": "mdi:bottle-tonic-plus"},
+    # 1.7 / 1.9 use inverted logic: 0=On, 1=Off (confirmed on H14 Pro against the app).
+    (1, 7): {"key": "auto_backwash", "name": "Auto rinse", "icon": "mdi:water-sync", "inverted": True},
+    (1, 9): {"key": "auto_dry_switch", "name": "Auto drying", "icon": "mdi:hair-dryer", "inverted": True},
+    (1, 11): {"key": "time_dry_after_clean", "name": "Timed dry after cleaning", "icon": "mdi:timer-cog"},
     (16, 6): {"key": "custom_switch", "name": "Custom mode", "icon": "mdi:tune-variant"},
 }
 
 # Curseurs numériques : {min, max, step, unit} (+ optimistic si état non lisible)
 KNOWN_NUMBER_PROPS: dict[tuple[int, int], dict] = {
-    (1, 14): {"key": "volume", "name": "Voice volume", "icon": "mdi:volume-high", "min": 0, "max": 100, "step": 1, "unit": "%", "optimistic": True},
-    (1, 12): {"key": "time_dry_value", "name": "Timed dry duration", "icon": "mdi:timer-sand", "min": 0, "max": 21600, "step": 600, "unit": "s", "optimistic": True},
+    (1, 14): {"key": "volume", "name": "Voice volume", "icon": "mdi:volume-high", "min": 0, "max": 100, "step": 1, "unit": "%"},
+    (1, 12): {"key": "time_dry_value", "name": "Timed dry duration", "icon": "mdi:timer-sand", "min": 0, "max": 21600, "step": 600, "unit": "s"},
     # Réglages du mode personnalisé (plages à confirmer ; valeurs entières observées 0-2)
     # 16.1/16.2 sont lisibles (web) ; 16.4 ne l'est pas → optimiste.
     # config=True : paramètres de réglage, pas des contrôles principaux.
     (16, 1): {"key": "clean_power", "name": "Suction power (custom)", "icon": "mdi:fan", "min": 0, "max": 3, "step": 1, "config": True},
     (16, 2): {"key": "clean_water", "name": "Water flow (custom)", "icon": "mdi:water", "min": 0, "max": 3, "step": 1, "config": True},
-    (16, 4): {"key": "brush_speed", "name": "Brush speed (custom)", "icon": "mdi:rotate-right", "min": 0, "max": 3, "step": 1, "optimistic": True, "config": True},
+    (16, 4): {"key": "brush_speed", "name": "Brush speed (custom)", "icon": "mdi:rotate-right", "min": 0, "max": 3, "step": 1, "config": True},
 }
 
 # Listes déroulantes : {options: {int_value: option_key}}
@@ -276,8 +283,9 @@ KNOWN_SELECT_PROPS: dict[tuple[int, int], dict] = {
         "key": "power_wheel",
         "name": "Traction force",
         "icon": "mdi:car-traction-control",
-        "options": {0: "light", 1: "balanced", 2: "strong"},
-        "optimistic": True,
+        # 0=Balanced confirmed on H14 Pro (app vs cloud); matches plugin order
+        # 0=Balanced, 1=Gentle, 2=Turbo.
+        "options": {0: "balanced", 1: "light", 2: "strong"},
     },
 }
 

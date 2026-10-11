@@ -46,6 +46,9 @@
       "clean_count_2": {
         "name": "Clean counter (alt.)"
       },
+      "cleaning_mode": {
+        "name": "Cleaning mode"
+      },
       "consumable_back_brush": {
         "name": "Back roller brush — hours left"
       },
@@ -57,6 +60,9 @@
       },
       "detergent_fav": {
         "name": "Detergent preference"
+      },
+      "drying_mode": {
+        "name": "Drying mode"
       },
       "dustbag_left": {
         "name": "Dust bag — minutes left"

@@ -46,6 +46,9 @@
       "clean_count_2": {
         "name": "Compteur de nettoyages (alt.)"
       },
+      "cleaning_mode": {
+        "name": "Mode de nettoyage"
+      },
       "consumable_back_brush": {
         "name": "Brosse rouleau arrière — heures restantes"
       },
@@ -57,6 +60,9 @@
       },
       "detergent_fav": {
         "name": "Préférence détergent"
+      },
+      "drying_mode": {
+        "name": "Mode de séchage"
       },
       "dustbag_left": {
         "name": "Sac à poussière — minutes restantes"
