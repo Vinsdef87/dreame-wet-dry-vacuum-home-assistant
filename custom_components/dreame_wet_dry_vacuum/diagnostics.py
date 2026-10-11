@@ -103,6 +103,19 @@ async def async_get_config_entry_diagnostics(
     except Exception as err:  # noqa: BLE001 - diagnostics must never fail
         probe = {"error": repr(err)}
 
+    # 5. Realtime RPC read (app style) of siid 1 + 16 + 17: finds settings the
+    #    cloud cache never publishes (self-clean mode 1.8, high-level mode 1.6...)
+    rpc_scan: list[Any] = []
+    for siid, piids in ((1, range(1, 91)), (16, range(1, 11)), (17, range(1, 11))):
+        keys = [{"siid": siid, "piid": p} for p in piids]
+        for i in range(0, len(keys), 30):
+            try:
+                rpc_scan.extend(
+                    await coordinator.api.get_properties(coordinator.device_id, keys[i : i + 30])
+                )
+            except DreameAPIError as err:
+                rpc_scan.append({"error": str(err), "siid": siid, "chunk": i})
+
     unmapped_scan = sorted(k for k, v in scan.items() if v["mapped_as"] == "UNMAPPED")
     unmapped_live = sorted(k for k, v in live.items() if v["mapped_as"] == "UNMAPPED")
 
@@ -122,6 +135,10 @@ async def async_get_config_entry_diagnostics(
         "status_scan": scan,
         "status_scan_errors": scan_errors,
         "rpc_get_properties_optimistic": rpc,
+        "rpc_scan": [
+            r for r in rpc_scan
+            if not isinstance(r, dict) or "error" in r or r.get("code") == 0
+        ],
         "device_info_raw": async_redact_data(coordinator.device_info_raw, TO_REDACT),
         "plugin_probe": async_redact_data(probe, TO_REDACT),
     }

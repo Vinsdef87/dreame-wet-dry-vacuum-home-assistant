@@ -310,7 +310,7 @@ class DreameAPI:
 
         req_id = _random_request_id()
         params = [
-            {"siid": p["siid"], "piid": p["piid"], "code": 0, "updateTime": 0}
+            {"did": device_id, "siid": p["siid"], "piid": p["piid"]}
             for p in props
         ]
 
@@ -326,9 +326,16 @@ class DreameAPI:
             },
         }
 
-        result = await self._authed_post(url, payload)
-        # NB: "data" can be explicit null — .get("data", {}) would return None.
-        data = result.get("data") or {}
+        data: dict[str, Any] = {}
+        for attempt in range(WRITE_ATTEMPTS):
+            if attempt:
+                await asyncio.sleep(WRITE_RETRY_DELAY)
+            result = await self._authed_post(url, payload)
+            # NB: "data" can be explicit null — .get("data", {}) would return None.
+            data = result.get("data") or {}
+            if data.get("result"):
+                break
+            _LOGGER.debug("get_properties attempt %d: %s", attempt + 1, result)
         return data.get("result") or []
 
     async def set_property(
