@@ -15,6 +15,7 @@ from homeassistant.core import HomeAssistant
 
 from . import DreameWetDryConfigEntry
 from .api import DreameAPIError
+from .plugin_probe import async_probe_plugin
 from .const import (
     KNOWN_BINARY_PROPS,
     KNOWN_BUTTON_PROPS,
@@ -24,7 +25,10 @@ from .const import (
     KNOWN_SWITCH_PROPS,
 )
 
-TO_REDACT = {CONF_USERNAME, CONF_PASSWORD, "mac", "did", "device_id", "uid"}
+TO_REDACT = {
+    CONF_USERNAME, CONF_PASSWORD, "mac", "did", "device_id", "uid", "sn", "localip", "localIp",
+    "ip", "key", "token", "secret", "bindKey", "masterUid", "masterName", "mobile", "email",
+}
 
 # Scan grid for the cloud status endpoint. 30 x 80 = 2400 keys, sent in chunks.
 SCAN_SIIDS = range(1, 31)
@@ -88,6 +92,17 @@ async def async_get_config_entry_diagnostics(
     except DreameAPIError as err:
         rpc = [{"error": str(err)}]
 
+    # 4. App plugin probe (read-only): how does the app write?
+    try:
+        probe = await async_probe_plugin(
+            hass,
+            coordinator.api,
+            coordinator.device_info_raw.get("model", ""),
+            coordinator.device_id,
+        )
+    except Exception as err:  # noqa: BLE001 - diagnostics must never fail
+        probe = {"error": repr(err)}
+
     unmapped_scan = sorted(k for k, v in scan.items() if v["mapped_as"] == "UNMAPPED")
     unmapped_live = sorted(k for k, v in live.items() if v["mapped_as"] == "UNMAPPED")
 
@@ -107,4 +122,6 @@ async def async_get_config_entry_diagnostics(
         "status_scan": scan,
         "status_scan_errors": scan_errors,
         "rpc_get_properties_optimistic": rpc,
+        "device_info_raw": async_redact_data(coordinator.device_info_raw, TO_REDACT),
+        "plugin_probe": async_redact_data(probe, TO_REDACT),
     }
