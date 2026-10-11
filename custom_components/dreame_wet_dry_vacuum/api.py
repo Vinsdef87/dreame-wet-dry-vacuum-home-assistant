@@ -1,6 +1,7 @@
 """Dreame Home cloud API client."""
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -28,6 +29,10 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# Write retries, mirroring the app plugin's tryCallMethod (1 + 3 retries, 1 s apart)
+WRITE_ATTEMPTS = 4
+WRITE_RETRY_DELAY = 1.0
 
 REGION_URLS = {
     "eu": EU_BASE_URL,
@@ -329,35 +334,51 @@ class DreameAPI:
     async def set_property(
         self, device_id: str, siid: int, piid: int, value: Any
     ) -> bool:
-        """Set a single device property."""
-        url = self._base_url + ENDPOINTS["send_command"].format(prefix=self.iot_prefix)
+        """Set a single device property, the way the Dreamehome app plugin does.
 
-        req_id = _random_request_id()
-        payload = {
-            "did": device_id,
-            "id": req_id,
-            "data": {
+        From the app plugin (dreame.vacuum.common, callMethodFromCloud):
+        - every param carries the device "did" next to siid/piid/value;
+        - the call is retried up to 3 times, 1 s apart (tryCallMethod), because
+          the cloud often answers 80001 "command timeout" while the low-power
+          handheld wakes its command channel.
+        """
+        url = self._base_url + ENDPOINTS["send_command"].format(prefix=self.iot_prefix)
+        result: dict[str, Any] = {}
+        for attempt in range(WRITE_ATTEMPTS):
+            if attempt:
+                await asyncio.sleep(WRITE_RETRY_DELAY)
+            req_id = _random_request_id()
+            payload = {
                 "did": device_id,
                 "id": req_id,
-                "method": "set_properties",
-                "params": [{"siid": siid, "piid": piid, "value": value}],
-                "from": "100000",
-            },
-        }
-
-        result = await self._authed_post(url, payload)
-        # NB: "data" can be explicit null — .get("data", {}) would return None.
-        data = result.get("data") or {}
-        results = data.get("result") or []
-        # An empty result means the device never acknowledged the write
-        # (e.g. asleep / offline): do not report it as a success.
-        ok = bool(results) and all(r.get("code", -1) == 0 for r in results)
-        _LOGGER.debug("set_property %s.%s=%s raw response: %s", siid, piid, value, result)
-        if not ok:
-            _LOGGER.warning(
-                "set_property %s.%s=%s rejected: %s", siid, piid, value, result
+                "data": {
+                    "did": device_id,
+                    "id": req_id,
+                    "method": "set_properties",
+                    "params": [
+                        {"did": device_id, "siid": siid, "piid": piid, "value": value}
+                    ],
+                    "from": "100000",
+                },
+            }
+            result = await self._authed_post(url, payload)
+            # NB: "data" can be explicit null — .get("data", {}) would return None.
+            data = result.get("data") or {}
+            results = data.get("result") or []
+            # An empty result means the device never acknowledged the write
+            # (e.g. asleep / offline): do not report it as a success.
+            ok = bool(results) and all(r.get("code", -1) == 0 for r in results)
+            _LOGGER.debug(
+                "set_property %s.%s=%s attempt %d raw response: %s",
+                siid, piid, value, attempt + 1, result,
             )
-        return ok
+            if ok:
+                return True
+        _LOGGER.warning(
+            "set_property %s.%s=%s rejected after %d attempts: %s",
+            siid, piid, value, WRITE_ATTEMPTS, result,
+        )
+        return False
 
     async def call_action(
         self, device_id: str, siid: int, aiid: int, params: list | None = None
