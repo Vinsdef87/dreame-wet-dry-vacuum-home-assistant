@@ -46,3 +46,10 @@ set_property:
           min: -1000000
           max: 1000000
           mode: box
+read_properties:
+  fields:
+    keys:
+      required: true
+      example: "1.8,1.9,1.10"
+      selector:
+        text:

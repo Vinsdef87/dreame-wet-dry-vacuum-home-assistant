@@ -264,6 +264,16 @@
           "description": "Integer value"
         }
       }
+    },
+    "read_properties": {
+      "name": "Read raw properties",
+      "description": "Advanced: realtime read of MIoT properties (device must be awake).",
+      "fields": {
+        "keys": {
+          "name": "Keys",
+          "description": "Comma separated siid.piid list"
+        }
+      }
     }
   }
 }

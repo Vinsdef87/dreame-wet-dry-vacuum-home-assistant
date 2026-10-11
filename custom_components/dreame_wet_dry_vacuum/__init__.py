@@ -5,7 +5,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
 import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
@@ -85,6 +85,29 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
                 raise HomeAssistantError(
                     f"{entry.title}: {key[0]}.{key[1]} not acknowledged by the device"
                 )
+
+    async def _read_properties(call: ServiceCall) -> ServiceResponse:
+        """Realtime read (app style). Logs and returns the raw per-property result."""
+        keys = []
+        for k in str(call.data["keys"]).replace(" ", "").split(","):
+            s_, _, p_ = k.partition(".")
+            keys.append({"siid": int(s_), "piid": int(p_)})
+        out: dict = {}
+        for entry in hass.config_entries.async_loaded_entries(DOMAIN):
+            coord = entry.runtime_data
+            res = await coord.api.get_properties(coord.device_id, keys)
+            out[entry.title] = res
+            _LOGGER.warning("read_properties %s -> %s", call.data["keys"], res)
+        hass.bus.async_fire(f"{DOMAIN}_properties", {"keys": call.data["keys"], "result": out})
+        return {"result": out}
+
+    hass.services.async_register(
+        DOMAIN,
+        "read_properties",
+        _read_properties,
+        schema=vol.Schema({vol.Required("keys"): cv.string}),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
 
     hass.services.async_register(
         DOMAIN,
