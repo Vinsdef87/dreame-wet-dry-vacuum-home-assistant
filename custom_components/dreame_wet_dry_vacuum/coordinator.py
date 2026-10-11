@@ -132,6 +132,14 @@ class DreameWetDryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.warning("set_property %s.%s=%s rejected by device", siid, piid, value)
         return ok
 
+    async def async_set_props(self, values: dict[tuple[int, int], Any]) -> bool:
+        """Write several properties in one batch, then update state."""
+        ok = await self.api.set_properties(self.device_id, values)
+        if ok:
+            self.props.update(values)
+            self.async_set_updated_data(self._build_data())
+        return ok
+
     def _handle_mqtt_update(self, state: dict[tuple[int, int], Any]) -> None:
         """Called from the MQTT thread when properties change."""
         # Marshal everything (including the props mutation) to the HA loop

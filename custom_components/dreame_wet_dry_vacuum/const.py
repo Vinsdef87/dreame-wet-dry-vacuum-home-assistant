@@ -120,7 +120,7 @@ KNOWN_MQTT_PROPS: dict[tuple[int, int], dict] = {
     # Remaining runtime in minutes (matches the "111 min" shown by the app).
     (1, 33): {"key": "runtime_left", "name": "Remaining runtime", "unit": "min", "device_class": "duration", "icon": "mdi:timer-outline"},
     # Cleaning mode (plugin, confirmed on H15): 4=Personalized matches 16.6 custom=1 on H14 Pro.
-    (16, 7): {"key": "cleaning_mode", "name": "Cleaning mode", "value_map": {1: "Quiet", 3: "Turbo", 4: "Personalized"}, "icon": "mdi:broom"},
+    (16, 7): {"key": "cleaning_mode", "name": "Cleaning mode", "value_map": {1: "Quiet", 3: "Turbo", 4: "Personalized", 5: "Custom"}, "icon": "mdi:broom"},
     (1, 53): {"key": "total_time", "name": "Total runtime", "unit": "s", "device_class": "duration", "icon": "mdi:timer-cog", "diagnostic": True},
     (1, 54): {"key": "total_clean_count", "name": "Total clean count", "icon": "mdi:counter", "state_class": "total_increasing"},
     (1, 55): {"key": "start_time", "name": "Start time", "device_class": "timestamp", "timestamp": True, "icon": "mdi:clock-start", "diagnostic": True},
@@ -143,7 +143,6 @@ KNOWN_MQTT_PROPS: dict[tuple[int, int], dict] = {
     (21, 7): {"key": "suck_brush_left", "name": "Suction brush — minutes left", "unit": "min", "icon": "mdi:rotate-right", "diagnostic": True},
     (22, 7): {"key": "suck_filter_left", "name": "Suction filter — minutes left", "unit": "min", "icon": "mdi:air-filter", "diagnostic": True},
     # --- Settings mirrored in read (also exposed as controls, see below) ---
-    (16, 3): {"key": "elec_water", "name": "Electrolysis / detergent", "icon": "mdi:flash", "diagnostic": True},
     (1, 67): {"key": "detergent_fav", "name": "Detergent preference", "icon": "mdi:bottle-tonic-plus", "diagnostic": True},
     # --- Alerts / faults (SIID 4, plugin names: warn/error/warnPush) ---
     (4, 1): {"key": "warn", "name": "Warnings", "icon": "mdi:alert", "bitmask": True, "decode": "warn", "diagnostic": True},
@@ -264,6 +263,9 @@ KNOWN_SWITCH_PROPS: dict[tuple[int, int], dict] = {
     # App label "Scheduled Roller Brush Drying"; app OFF while cloud value = 1 -> inverted.
     (1, 11): {"key": "time_dry_after_clean", "name": "Scheduled roller brush drying", "icon": "mdi:timer-cog", "inverted": True},
     (16, 6): {"key": "custom_switch", "name": "Custom mode", "icon": "mdi:tune-variant"},
+    # Electrolyzed water (app plugin: elecWater = value == 0). Never published by
+    # the cloud cache, so its state is only known after a write from HA.
+    (16, 3): {"key": "elec_water", "name": "Electrolyzed water", "icon": "mdi:flash", "inverted": True, "optimistic": True},
 }
 
 # Curseurs numériques : {min, max, step, unit} (+ optimistic si état non lisible)
@@ -314,3 +316,14 @@ REGIONS = {
     "ru": "Russia",
     "kr": "South Korea",
 }
+
+
+# Custom cleaning mode, as written by the app plugin (_handleCustomModeResultNew /
+# changeCleanPowerAndWater): one batch with power, water, mode code and switch.
+PROP_CLEAN_POWER = (16, 1)
+PROP_CLEAN_WATER = (16, 2)
+PROP_ELEC_WATER = (16, 3)  # 0 = on, 1 = off
+PROP_CUSTOM_SWITCH = (16, 6)
+PROP_CLEAN_MODE = (16, 7)  # 1 quiet, 3 turbo, 4 personalized
+CLEAN_MODE_PERSONALIZED = 4
+SERVICE_APPLY_CUSTOM_MODE = "apply_custom_mode"

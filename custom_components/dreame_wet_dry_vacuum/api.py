@@ -334,15 +334,28 @@ class DreameAPI:
     async def set_property(
         self, device_id: str, siid: int, piid: int, value: Any
     ) -> bool:
-        """Set a single device property, the way the Dreamehome app plugin does.
+        """Set a single device property."""
+        return await self.set_properties(device_id, {(siid, piid): value})
 
-        From the app plugin (dreame.vacuum.common, callMethodFromCloud):
+    async def set_properties(
+        self, device_id: str, values: dict[tuple[int, int], Any]
+    ) -> bool:
+        """Write one or more properties in one call, the way the app plugin does.
+
+        From the Dreamehome plugin (dreame.vacuum.common, callMethodFromCloud):
         - every param carries the device "did" next to siid/piid/value;
         - the call is retried up to 3 times, 1 s apart (tryCallMethod), because
           the cloud often answers 80001 "command timeout" while the low-power
-          handheld wakes its command channel.
+          handheld wakes its command channel;
+        - related settings (e.g. custom mode) are sent together in one batch.
         """
+        if not values:
+            return False
         url = self._base_url + ENDPOINTS["send_command"].format(prefix=self.iot_prefix)
+        params = [
+            {"did": device_id, "siid": s, "piid": p, "value": v}
+            for (s, p), v in values.items()
+        ]
         result: dict[str, Any] = {}
         for attempt in range(WRITE_ATTEMPTS):
             if attempt:
@@ -355,9 +368,7 @@ class DreameAPI:
                     "did": device_id,
                     "id": req_id,
                     "method": "set_properties",
-                    "params": [
-                        {"did": device_id, "siid": siid, "piid": piid, "value": value}
-                    ],
+                    "params": params,
                     "from": "100000",
                 },
             }
@@ -369,14 +380,13 @@ class DreameAPI:
             # (e.g. asleep / offline): do not report it as a success.
             ok = bool(results) and all(r.get("code", -1) == 0 for r in results)
             _LOGGER.debug(
-                "set_property %s.%s=%s attempt %d raw response: %s",
-                siid, piid, value, attempt + 1, result,
+                "set_properties %s attempt %d raw response: %s", params, attempt + 1, result
             )
             if ok:
                 return True
         _LOGGER.warning(
-            "set_property %s.%s=%s rejected after %d attempts: %s",
-            siid, piid, value, WRITE_ATTEMPTS, result,
+            "set_properties %s rejected after %d attempts: %s",
+            {f"{s}.{p}": v for (s, p), v in values.items()}, WRITE_ATTEMPTS, result,
         )
         return False
 

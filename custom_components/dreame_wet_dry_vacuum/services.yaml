@@ -1,0 +1,25 @@
+apply_custom_mode:
+  fields:
+    suction:
+      required: true
+      default: 2
+      selector:
+        number:
+          min: 1
+          max: 3
+          step: 1
+          mode: box
+    water:
+      required: true
+      default: 2
+      selector:
+        number:
+          min: 1
+          max: 3
+          step: 1
+          mode: box
+    electrolyzed_water:
+      required: true
+      default: true
+      selector:
+        boolean:

@@ -5,12 +5,26 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import HomeAssistantError
+import voluptuous as vol
+from homeassistant.helpers import config_validation as cv
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import DreameAPI, DreameAPIError, DreameAuthError
-from .const import CONF_DEVICE_ID, CONF_REGION
+from .const import (
+    CLEAN_MODE_PERSONALIZED,
+    CONF_DEVICE_ID,
+    CONF_REGION,
+    DOMAIN,
+    PROP_CLEAN_MODE,
+    PROP_CLEAN_POWER,
+    PROP_CLEAN_WATER,
+    PROP_CUSTOM_SWITCH,
+    PROP_ELEC_WATER,
+    SERVICE_APPLY_CUSTOM_MODE,
+)
 from .coordinator import DreameWetDryCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,6 +39,42 @@ PLATFORMS = [
 ]
 
 type DreameWetDryConfigEntry = ConfigEntry[DreameWetDryCoordinator]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+APPLY_CUSTOM_MODE_SCHEMA = vol.Schema(
+    {
+        vol.Required("suction"): vol.All(vol.Coerce(int), vol.Range(min=1, max=3)),
+        vol.Required("water"): vol.All(vol.Coerce(int), vol.Range(min=1, max=3)),
+        vol.Required("electrolyzed_water"): cv.boolean,
+    }
+)
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Register integration-level services."""
+
+    async def _apply_custom_mode(call: ServiceCall) -> None:
+        values = {
+            PROP_CLEAN_POWER: call.data["suction"],
+            PROP_CLEAN_WATER: call.data["water"],
+            PROP_CLEAN_MODE: CLEAN_MODE_PERSONALIZED,
+            PROP_CUSTOM_SWITCH: 1,
+            PROP_ELEC_WATER: 0 if call.data["electrolyzed_water"] else 1,
+        }
+        entries = hass.config_entries.async_loaded_entries(DOMAIN)
+        if not entries:
+            raise HomeAssistantError("No Dreame wet & dry vacuum loaded")
+        for entry in entries:
+            if not await entry.runtime_data.async_set_props(values):
+                raise HomeAssistantError(
+                    f"{entry.title}: custom mode not acknowledged by the device"
+                )
+
+    hass.services.async_register(
+        DOMAIN, SERVICE_APPLY_CUSTOM_MODE, _apply_custom_mode, schema=APPLY_CUSTOM_MODE_SCHEMA
+    )
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: DreameWetDryConfigEntry) -> bool:

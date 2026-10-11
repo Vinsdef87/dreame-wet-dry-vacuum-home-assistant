@@ -67,9 +67,6 @@
       "dustbag_left": {
         "name": "Sac à poussière — minutes restantes"
       },
-      "elec_water": {
-        "name": "Électrolyse / détergent"
-      },
       "error": {
         "name": "Codes défaut"
       },
@@ -185,6 +182,9 @@
       "custom_switch": {
         "name": "Mode personnalisé"
       },
+      "elec_water": {
+        "name": "Eau électrolysée"
+      },
       "light_control": {
         "name": "Lumière"
       },
@@ -225,6 +225,26 @@
       },
       "start_self_dry": {
         "name": "Démarrer le séchage"
+      }
+    }
+  },
+  "services": {
+    "apply_custom_mode": {
+      "name": "Appliquer le mode personnalisé",
+      "description": "Écrit le mode de nettoyage personnalisé en un seul envoi, comme l'app Dreame.",
+      "fields": {
+        "suction": {
+          "name": "Aspiration",
+          "description": "1 = gentle, 2 = standard, 3 = strong"
+        },
+        "water": {
+          "name": "Débit d'eau",
+          "description": "1 = low, 2 = standard, 3 = high"
+        },
+        "electrolyzed_water": {
+          "name": "Eau électrolysée",
+          "description": "Enable electrolyzed water"
+        }
       }
     }
   }
