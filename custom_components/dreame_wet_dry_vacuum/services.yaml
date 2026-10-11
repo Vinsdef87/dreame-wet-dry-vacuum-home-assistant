@@ -23,3 +23,26 @@ apply_custom_mode:
       default: true
       selector:
         boolean:
+set_property:
+  fields:
+    siid:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: box
+    piid:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 200
+          mode: box
+    value:
+      required: true
+      selector:
+        number:
+          min: -1000000
+          max: 1000000
+          mode: box

@@ -74,6 +74,30 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.services.async_register(
         DOMAIN, SERVICE_APPLY_CUSTOM_MODE, _apply_custom_mode, schema=APPLY_CUSTOM_MODE_SCHEMA
     )
+
+    async def _set_property(call: ServiceCall) -> None:
+        key = (call.data["siid"], call.data["piid"])
+        entries = hass.config_entries.async_loaded_entries(DOMAIN)
+        if not entries:
+            raise HomeAssistantError("No Dreame wet & dry vacuum loaded")
+        for entry in entries:
+            if not await entry.runtime_data.async_set_props({key: call.data["value"]}):
+                raise HomeAssistantError(
+                    f"{entry.title}: {key[0]}.{key[1]} not acknowledged by the device"
+                )
+
+    hass.services.async_register(
+        DOMAIN,
+        "set_property",
+        _set_property,
+        schema=vol.Schema(
+            {
+                vol.Required("siid"): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
+                vol.Required("piid"): vol.All(vol.Coerce(int), vol.Range(min=1, max=200)),
+                vol.Required("value"): vol.Coerce(int),
+            }
+        ),
+    )
     return True
 
 

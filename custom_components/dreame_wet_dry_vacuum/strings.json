@@ -246,6 +246,24 @@
           "description": "Enable electrolyzed water"
         }
       }
+    },
+    "set_property": {
+      "name": "Set raw property",
+      "description": "Advanced: write one MIoT property (siid.piid) on the device.",
+      "fields": {
+        "siid": {
+          "name": "SIID",
+          "description": "Service id"
+        },
+        "piid": {
+          "name": "PIID",
+          "description": "Property id"
+        },
+        "value": {
+          "name": "Value",
+          "description": "Integer value"
+        }
+      }
     }
   }
 }
