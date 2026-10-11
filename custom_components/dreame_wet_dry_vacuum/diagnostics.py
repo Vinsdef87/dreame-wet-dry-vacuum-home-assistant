@@ -96,6 +96,7 @@ async def async_get_config_entry_diagnostics(
         "snapshot": async_redact_data(coordinator.snapshot, TO_REDACT),
         "model": coordinator.device_info_raw.get("model"),
         "mqtt_connected": bool(coordinator.mqtt),
+        "iot_prefix": coordinator.api.iot_prefix,
         "summary": {
             "live_props": len(live),
             "scan_hits": len(scan),

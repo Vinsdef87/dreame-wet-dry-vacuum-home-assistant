@@ -47,6 +47,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DreameWetDryConfigEntry)
     device_id = entry.data[CONF_DEVICE_ID]
     device_info = next((d for d in devices if str(d.get("did")) == str(device_id)), {})
 
+    api.set_bind_domain(device_info.get("bindDomain") or device_info.get("bind_domain"))
     coordinator = DreameWetDryCoordinator(hass, entry, api, device_id, device_info)
 
     # Raises ConfigEntryNotReady / ConfigEntryAuthFailed on failure

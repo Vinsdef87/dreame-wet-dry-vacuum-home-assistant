@@ -208,3 +208,12 @@ class TestAuthedRequests:
         assert snap["name"] == "H14 Pro"
         assert snap["battery"] == 100
         assert snap["online"] is True
+
+
+def test_bind_domain_sets_command_prefix():
+    api = DreameAPI("u", "p")
+    assert api.iot_prefix == "10000"
+    api.set_bind_domain("20001.mt.eu.iot.dreame.tech:19974")
+    assert api.iot_prefix == "20001"
+    api.set_bind_domain(None)
+    assert api.iot_prefix == "20001"

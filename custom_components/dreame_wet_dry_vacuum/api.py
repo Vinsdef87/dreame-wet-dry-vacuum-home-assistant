@@ -105,6 +105,8 @@ class DreameAPI:
         self._session = session
         self._owns_session = session is None
         self._rlc = _compute_rlc(region)
+        # Overridden from the device bindDomain once known (see set_bind_domain)
+        self.iot_prefix: str = DREAME_IOT_PREFIX
 
     @property
     def uid(self) -> str | None:
@@ -145,6 +147,18 @@ class DreameAPI:
         # Only close a session we created ourselves, never a shared one.
         if self._owns_session and self._session and not self._session.closed:
             await self._session.close()
+
+    def set_bind_domain(self, bind_domain: str | None) -> None:
+        """Route device commands to the shard the device is bound to.
+
+        The command endpoint is /dreame-iot-com-{prefix}/device/sendCommand where
+        {prefix} is the first label of the device's bindDomain (e.g.
+        "20001.mt.eu.iot.dreame.tech:19974" -> "20001"), as done by the app and
+        Tasshack/dreame-vacuum. A wrong prefix makes every write time out with
+        code 80001 ("device may be offline").
+        """
+        if bind_domain:
+            self.iot_prefix = bind_domain.split(":")[0].split(".")[0] or DREAME_IOT_PREFIX
 
     async def login(self) -> None:
         """Authenticate and store access token."""
@@ -287,7 +301,7 @@ class DreameAPI:
         props: list of {siid, piid} dicts
         Returns list of {siid, piid, value, code} dicts.
         """
-        url = self._base_url + ENDPOINTS["send_command"].format(prefix=DREAME_IOT_PREFIX)
+        url = self._base_url + ENDPOINTS["send_command"].format(prefix=self.iot_prefix)
 
         req_id = _random_request_id()
         params = [
@@ -316,7 +330,7 @@ class DreameAPI:
         self, device_id: str, siid: int, piid: int, value: Any
     ) -> bool:
         """Set a single device property."""
-        url = self._base_url + ENDPOINTS["send_command"].format(prefix=DREAME_IOT_PREFIX)
+        url = self._base_url + ENDPOINTS["send_command"].format(prefix=self.iot_prefix)
 
         req_id = _random_request_id()
         payload = {
@@ -349,7 +363,7 @@ class DreameAPI:
         self, device_id: str, siid: int, aiid: int, params: list | None = None
     ) -> bool:
         """Call a device action."""
-        url = self._base_url + ENDPOINTS["send_command"].format(prefix=DREAME_IOT_PREFIX)
+        url = self._base_url + ENDPOINTS["send_command"].format(prefix=self.iot_prefix)
 
         req_id = _random_request_id()
         payload = {
