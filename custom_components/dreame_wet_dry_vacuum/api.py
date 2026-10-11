@@ -299,7 +299,7 @@ class DreameAPI:
         return out
 
     async def get_properties(
-        self, device_id: str, props: list[dict[str, int]]
+        self, device_id: str, props: list[dict[str, int]], attempts: int = WRITE_ATTEMPTS
     ) -> list[dict[str, Any]]:
         """
         Fetch device properties.
@@ -327,7 +327,7 @@ class DreameAPI:
         }
 
         data: dict[str, Any] = {}
-        for attempt in range(WRITE_ATTEMPTS):
+        for attempt in range(attempts):
             if attempt:
                 await asyncio.sleep(WRITE_RETRY_DELAY)
             result = await self._authed_post(url, payload)

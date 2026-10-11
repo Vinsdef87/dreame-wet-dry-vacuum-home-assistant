@@ -15,7 +15,6 @@ from homeassistant.core import HomeAssistant
 
 from . import DreameWetDryConfigEntry
 from .api import DreameAPIError
-from .plugin_probe import async_probe_plugin
 from .const import (
     KNOWN_BINARY_PROPS,
     KNOWN_BUTTON_PROPS,
@@ -88,33 +87,29 @@ async def async_get_config_entry_diagnostics(
         if meta.get("optimistic")
     ]
     try:
-        rpc = await coordinator.api.get_properties(coordinator.device_id, optimistic)
+        rpc = await coordinator.api.get_properties(coordinator.device_id, optimistic, attempts=1)
     except DreameAPIError as err:
         rpc = [{"error": str(err)}]
 
-    # 4. App plugin probe (read-only): how does the app write?
-    try:
-        probe = await async_probe_plugin(
-            hass,
-            coordinator.api,
-            coordinator.device_info_raw.get("model", ""),
-            coordinator.device_id,
-        )
-    except Exception as err:  # noqa: BLE001 - diagnostics must never fail
-        probe = {"error": repr(err)}
+    # 4. App plugin probe: heavy (8 MB download), run it from the
+    #    plugin_probe module on demand instead of on every diagnostics call.
+    probe = {"skipped": True}
 
     # 5. Realtime RPC read (app style) of siid 1 + 16 + 17: finds settings the
     #    cloud cache never publishes (self-clean mode 1.8, high-level mode 1.6...)
     rpc_scan: list[Any] = []
-    for siid, piids in ((1, range(1, 91)), (16, range(1, 11)), (17, range(1, 11))):
-        keys = [{"siid": siid, "piid": p} for p in piids]
-        for i in range(0, len(keys), 30):
-            try:
-                rpc_scan.extend(
-                    await coordinator.api.get_properties(coordinator.device_id, keys[i : i + 30])
-                )
-            except DreameAPIError as err:
-                rpc_scan.append({"error": str(err), "siid": siid, "chunk": i})
+    candidates = [
+        (1, 5), (1, 6), (1, 8), (1, 9), (1, 10), (1, 13), (1, 15), (1, 16), (1, 17),
+        (16, 3), (16, 5), (16, 8), (17, 1), (17, 2), (17, 3), (17, 8),
+    ]
+    try:
+        rpc_scan = await coordinator.api.get_properties(
+            coordinator.device_id,
+            [{"siid": s, "piid": p} for s, p in candidates],
+            attempts=2,
+        )
+    except DreameAPIError as err:
+        rpc_scan = [{"error": str(err)}]
 
     unmapped_scan = sorted(k for k, v in scan.items() if v["mapped_as"] == "UNMAPPED")
     unmapped_live = sorted(k for k, v in live.items() if v["mapped_as"] == "UNMAPPED")
@@ -135,10 +130,7 @@ async def async_get_config_entry_diagnostics(
         "status_scan": scan,
         "status_scan_errors": scan_errors,
         "rpc_get_properties_optimistic": rpc,
-        "rpc_scan": [
-            r for r in rpc_scan
-            if not isinstance(r, dict) or "error" in r or r.get("code") == 0
-        ],
+        "rpc_scan": rpc_scan,
         "device_info_raw": async_redact_data(coordinator.device_info_raw, TO_REDACT),
         "plugin_probe": async_redact_data(probe, TO_REDACT),
     }
