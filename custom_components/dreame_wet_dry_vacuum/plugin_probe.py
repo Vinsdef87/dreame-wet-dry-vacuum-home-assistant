@@ -41,8 +41,14 @@ _KEYWORDS = (
     "iotstatus",
     "iotuserdata",
     "publish",
+    "SIID: 16",
+    "SIID = 16",
+    "ELEC",
+    "elec",
+    "Electroly",
+    "CUSTOM",
 )
-_SNIPPET = 350
+_SNIPPET = 600
 _MAX_SNIPPETS_PER_KEYWORD = 6
 
 
