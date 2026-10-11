@@ -183,7 +183,7 @@ class TestAuthedRequests:
 
         api = DreameAPI("u", "p", session=FakeSession(handler))
         assert run(api.get_properties("did", [{"siid": 23, "piid": 1}])) == []
-        assert run(api.set_property("did", 23, 1, 1)) is True
+        assert run(api.set_property("did", 23, 1, 1)) is False
         assert run(api.call_action("did", 1, 1)) is False
 
     def test_get_device_snapshot_matches_did_as_string(self):

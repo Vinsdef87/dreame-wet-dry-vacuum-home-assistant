@@ -97,6 +97,9 @@
       "level_washing": {
         "name": "Washing level"
       },
+      "runtime_left": {
+        "name": "Remaining runtime"
+      },
       "start_time": {
         "name": "Start time"
       },
@@ -186,7 +189,7 @@
         "name": "Light"
       },
       "time_dry_after_clean": {
-        "name": "Timed dry after cleaning"
+        "name": "Scheduled roller brush drying"
       }
     },
     "number": {

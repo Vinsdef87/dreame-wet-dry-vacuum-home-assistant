@@ -114,9 +114,11 @@ KNOWN_MQTT_PROPS: dict[tuple[int, int], dict] = {
     (1, 28): {"key": "work_mode", "name": "Work mode", "enum": True, "icon": "mdi:state-machine", "diagnostic": True},
     (1, 29): {"key": "level_washing", "name": "Washing level", "icon": "mdi:water-percent", "state_class": "measurement"},
     (1, 30): {"key": "level_drying", "name": "Drying level", "icon": "mdi:hair-dryer", "state_class": "measurement"},
-    # Drying mode: 2=Fast confirmed on H14 Pro (2026-10-11, app vs cloud value).
-    # Other codes not yet observed -> shown as raw number.
-    (1, 10): {"key": "drying_mode", "name": "Drying mode", "value_map": {2: "Fast"}, "icon": "mdi:hair-dryer"},
+    # Drying mode, H14 Pro (2026-10-11, app vs cloud): 2=Quiet, 3=Super-speed
+    # confirmed; 1=High-speed from the app plugin.
+    (1, 10): {"key": "drying_mode", "name": "Drying mode", "value_map": {1: "High-speed", 2: "Quiet", 3: "Super-speed"}, "icon": "mdi:hair-dryer"},
+    # Remaining runtime in minutes (matches the "111 min" shown by the app).
+    (1, 33): {"key": "runtime_left", "name": "Remaining runtime", "unit": "min", "device_class": "duration", "icon": "mdi:timer-outline"},
     # Cleaning mode (plugin, confirmed on H15): 4=Personalized matches 16.6 custom=1 on H14 Pro.
     (16, 7): {"key": "cleaning_mode", "name": "Cleaning mode", "value_map": {1: "Quiet", 3: "Turbo", 4: "Personalized"}, "icon": "mdi:broom"},
     (1, 53): {"key": "total_time", "name": "Total runtime", "unit": "s", "device_class": "duration", "icon": "mdi:timer-cog", "diagnostic": True},
@@ -256,10 +258,11 @@ KNOWN_BINARY_PROPS: dict[tuple[int, int], dict] = {
 KNOWN_SWITCH_PROPS: dict[tuple[int, int], dict] = {
     (1, 3): {"key": "light_control", "name": "Light", "icon": "mdi:lightbulb"},
     (1, 4): {"key": "auto_mix_detergent", "name": "Auto detergent mixing", "icon": "mdi:bottle-tonic-plus"},
-    # 1.7 / 1.9 use inverted logic: 0=On, 1=Off (confirmed on H14 Pro against the app).
+    # 1.7 / 1.9 / 1.11 use inverted logic: 0=On, 1=Off (confirmed on H14 Pro against the app).
     (1, 7): {"key": "auto_backwash", "name": "Auto rinse", "icon": "mdi:water-sync", "inverted": True},
     (1, 9): {"key": "auto_dry_switch", "name": "Auto drying", "icon": "mdi:hair-dryer", "inverted": True},
-    (1, 11): {"key": "time_dry_after_clean", "name": "Timed dry after cleaning", "icon": "mdi:timer-cog"},
+    # App label "Scheduled Roller Brush Drying"; app OFF while cloud value = 1 -> inverted.
+    (1, 11): {"key": "time_dry_after_clean", "name": "Scheduled roller brush drying", "icon": "mdi:timer-cog", "inverted": True},
     (16, 6): {"key": "custom_switch", "name": "Custom mode", "icon": "mdi:tune-variant"},
 }
 

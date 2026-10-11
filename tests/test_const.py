@@ -97,7 +97,8 @@ class TestH14ProMappingConfirmed:
 
         assert KNOWN_SELECT_PROPS[(23, 1)]["options"][0] == "balanced"
 
-    def test_drying_mode_two_is_fast(self):
+    def test_drying_mode_values(self):
         from custom_components.dreame_wet_dry_vacuum.const import KNOWN_MQTT_PROPS
 
-        assert KNOWN_MQTT_PROPS[(1, 10)]["value_map"][2] == "Fast"
+        vm = KNOWN_MQTT_PROPS[(1, 10)]["value_map"]
+        assert vm[2] == "Quiet" and vm[3] == "Super-speed"

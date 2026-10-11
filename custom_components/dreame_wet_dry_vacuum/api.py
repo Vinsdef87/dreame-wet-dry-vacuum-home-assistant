@@ -335,7 +335,10 @@ class DreameAPI:
         # NB: "data" can be explicit null — .get("data", {}) would return None.
         data = result.get("data") or {}
         results = data.get("result") or []
-        ok = all(r.get("code", -1) == 0 for r in results)
+        # An empty result means the device never acknowledged the write
+        # (e.g. asleep / offline): do not report it as a success.
+        ok = bool(results) and all(r.get("code", -1) == 0 for r in results)
+        _LOGGER.debug("set_property %s.%s=%s raw response: %s", siid, piid, value, result)
         if not ok:
             _LOGGER.warning(
                 "set_property %s.%s=%s rejected: %s", siid, piid, value, result

@@ -97,6 +97,9 @@
       "level_washing": {
         "name": "Niveau de lavage"
       },
+      "runtime_left": {
+        "name": "Autonomie restante"
+      },
       "start_time": {
         "name": "Heure de début"
       },
@@ -186,7 +189,7 @@
         "name": "Lumière"
       },
       "time_dry_after_clean": {
-        "name": "Séchage programmé après nettoyage"
+        "name": "Séchage programmé des rouleaux"
       }
     },
     "number": {
